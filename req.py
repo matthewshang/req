@@ -2,6 +2,7 @@
 Prototype skyward access
 """
 
+import time
 import configparser
 import requests
 import lxml.html
@@ -18,6 +19,7 @@ BASE_URL = 'https://www01.nwrdc.wa-k12.net/scripts/cgiip.exe/WService={}/'.forma
 LOGIN = 'skyporthttp.w'
 HOME = 'sfhome01.w'
 GRADEBOOK = 'sfgradebook001.w'
+ASSIGNMENTS = 'httploader.p'
 
 def login(s):
     data = { 'requestAction': 'eel' }
@@ -70,10 +72,29 @@ def get_grades(s, session_data):
     }
     return s.post(BASE_URL + GRADEBOOK, data=data, params=params)
 
+def get_assignments(s, session_data, entry):
+    data = {
+        'stuId': session_data['nameid'],
+        'sessionid': session_data['sessionid'],
+        'encses': session_data['encses'],
+        'dwd': session_data['dwd'],
+        'wfaacl': session_data['wfaacl'],
+        'ishttp': 'true',
+        'fromHttp': 'yes',
+        'action': 'viewGradeInfoDialog'
+    }
+
+    data.update(entry.attribs)
+
+    params = {
+        'file': 'sfgradebook001.w'
+    }
+    return s.post(BASE_URL + ASSIGNMENTS, data=data, params=params)
+
 with requests.Session() as s:
     r = login(s)
     session_data = fill_session(r.text[4:-5].split("^"))
-    print(session_data)
+    # print(session_data)
     r = login_home(s, session_data)
 
     home_html = lxml.html.fromstring(r.text)
@@ -88,6 +109,10 @@ with requests.Session() as s:
         
     with open("gradebook.html", 'r') as f:
         text = f.read()
-        gradebook = gradebook.build_gradebook(text)
-        entry = gradebook.table[1][1]
-        print(entry.attribs)
+    gradebook = gradebook.build_gradebook(text)
+    entry = gradebook.table[2][4]
+    r = get_assignments(s, session_data, entry)
+    print(r.headers)
+
+    with open("assignments.html", 'w') as f:
+        f.write(r.text)

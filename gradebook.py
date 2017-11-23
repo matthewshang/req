@@ -1,5 +1,4 @@
 import lxml.html
-import json
 import simplejson
 
 class Gradebook:
