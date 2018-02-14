@@ -21,6 +21,33 @@ HOME = 'sfhome01.w'
 GRADEBOOK = 'sfgradebook001.w'
 ASSIGNMENTS = 'httploader.p'
 
+def main():
+    with requests.Session() as s:
+        r = login(s)
+        session_data = fill_session(r.text[4:-5].split("^"))
+        # print(session_data)
+        r = login_home(s, session_data)
+
+        home_html = lxml.html.fromstring(r.text)
+        hiddens = home_html.xpath(r'//input[@type="hidden"]')
+        for x in hiddens:
+            session_data[x.attrib['name']] = x.attrib['value']
+
+        # r = get_grades(s, session_data)
+        # print(r.headers)
+        # with open("gradebook.html", "w") as file:
+        #     file.write(r.text)
+            
+        with open("gradebook.html", 'r') as f:
+            text = f.read()
+        book = gradebook.build_gradebook(text)
+        entry = book.table[3][4]
+        r = get_assignments(s, session_data, entry)
+        print(r.headers)
+
+        with open("assignments.html", 'w') as f:
+            f.write(r.text)
+
 def login(s):
     data = { 'requestAction': 'eel' }
 
@@ -91,28 +118,5 @@ def get_assignments(s, session_data, entry):
     }
     return s.post(BASE_URL + ASSIGNMENTS, data=data, params=params)
 
-with requests.Session() as s:
-    r = login(s)
-    session_data = fill_session(r.text[4:-5].split("^"))
-    # print(session_data)
-    r = login_home(s, session_data)
-
-    home_html = lxml.html.fromstring(r.text)
-    hiddens = home_html.xpath(r'//input[@type="hidden"]')
-    for x in hiddens:
-        session_data[x.attrib['name']] = x.attrib['value']
-
-    # r = get_grades(s, session_data)
-    # print(r.headers)
-    # with open("gradebook.html", "w") as file:
-    #     file.write(r.text)
-        
-    with open("gradebook.html", 'r') as f:
-        text = f.read()
-    gradebook = gradebook.build_gradebook(text)
-    entry = gradebook.table[2][4]
-    r = get_assignments(s, session_data, entry)
-    print(r.headers)
-
-    with open("assignments.html", 'w') as f:
-        f.write(r.text)
+if __name__ == '__main__':
+    main()

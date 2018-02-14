@@ -11,6 +11,10 @@ class ClassEntry:
         self.percent = children[3]
         self.points = children[4]
 
+    def __str__(self):
+        return "{}: {}, Letter {}, Percent {}, Points {}".format(
+            self.date, self.name, self.grade, self.percent, self.points)
+
 class Category:
     def __init__(self, html):
         children = [x.text_content() for x in html.iterchildren()]
@@ -27,6 +31,10 @@ class Category:
     def add_entry(self, html):
         if len(html.getchildren()) > 1:
             self.entries.append(ClassEntry(html))
+
+    def __str__(self):
+        return "{}, Weighted {}%, Letter {}, Percent {}, Points {}".format(
+            self.name, self.weight, self.grade, self.percent, self.points)
 
 class ClassDetail:
     def __init__(self):
@@ -68,7 +76,8 @@ if __name__ == "__main__":
     with open('assignments.html', 'r') as f:
         text = f.read()
     class_detail = build_class(text)
+    print("{}: {}%".format(class_detail.overall_grade, class_detail.overall_percent))
     for c in class_detail.categories:
-        print(c.name)
+        print(c)
         for e in c.entries:
-            print("    " + e.name)
+            print("    " + str(e))
